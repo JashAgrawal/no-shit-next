@@ -1,17 +1,17 @@
-import { redirect } from 'next/navigation';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
-import LandingClient from './landing-client';
+import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import LandingClient from "./landing-client";
 
 export default async function Home() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  // PRD: No auth in v1. Landing page is public.
+  // const session = await auth.api.getSession({
+  //   headers: await headers(),
+  // });
 
-  // If not logged in, redirect to sign-in
-  if (!session) {
-    redirect('/sign-in');
-  }
+  // if (!session) {
+  //   redirect('/sign-in');
+  // }
 
   return <LandingClient />;
 }

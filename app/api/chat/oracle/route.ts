@@ -35,9 +35,22 @@ export async function POST(req: NextRequest) {
       : '';
 
     // Get Oracle's response
-    let prompt = '';
-    if (shouldJudge) {
-      prompt = `${AGENTS.oracle.systemPrompt}
+    let systemPrompt = AGENTS.oracle.systemPrompt;
+
+    // Check if we've reached the turn limit (30 turns = 60 messages)
+    // We count turns as pairs of messages, so length / 2
+    const currentTurns = conversationHistory ? Math.ceil(conversationHistory.length / 2) : 0;
+
+    if (currentTurns >= 30) {
+      systemPrompt += `
+      
+CRITICAL INSTRUCTION: You have reached the maximum conversation limit (30 turns).
+You MUST provide a FINAL VERDICT now based on the information you have.
+Do NOT ask any more questions.
+Provide the verdict in the format specified above immediately.`;
+    }
+
+    const prompt = `${systemPrompt}
 
 CONVERSATION HISTORY:
 ${conversationContext}
@@ -46,8 +59,12 @@ USER'S LATEST MESSAGE:
 ${message}
 
 INSTRUCTIONS:
-Make a FINAL VERDICT. Provide it in this EXACT format:
+You are the Oracle. Your goal is to judge the user's startup idea.
+Review the conversation history.
+IF you have sufficient information to make a FINAL VERDICT (Problem Clarity, Market Size, Uniqueness, Business Model, Execution), then provide the verdict in the EXACT format below.
+IF you need more information, ask 2-3 pointed, brutal questions to understand the idea better. Do NOT provide a verdict yet.
 
+VERDICT FORMAT (only use if you are ready to judge):
 VERDICT: [TRASH/MID/VIABLE/FIRE]
 
 SCORES:
@@ -59,15 +76,6 @@ SCORES:
 
 REASONING:
 [Your brutal honest assessment]`;
-    } else {
-      prompt = `${AGENTS.oracle.systemPrompt}
-
-${conversationContext ? `CONVERSATION HISTORY:\n${conversationContext}\n\n` : ''}USER'S MESSAGE:
-${message}
-
-INSTRUCTIONS:
-Ask 2-3 pointed, brutal questions to understand this idea better.`;
-    }
 
     // If streaming is requested, return a streaming response
     if (stream) {
@@ -78,14 +86,14 @@ Ask 2-3 pointed, brutal questions to understand this idea better.`;
         async start(controller) {
           try {
             for await (const chunk of streamFromGemini(prompt)) {
-              fullResponse += chunk;
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ chunk })}\n\n`));
+              fullResponse += chunk.text;
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ chunk: chunk.text })}\n\n`));
             }
 
-            // Parse verdict if judging
+            // Parse verdict if present
             let verdict = null;
             let dashboardData = null;
-            if (shouldJudge && fullResponse.includes('VERDICT:')) {
+            if (fullResponse.includes('VERDICT:')) {
               const verdictMatch = fullResponse.match(/VERDICT:\s*(TRASH|MID|VIABLE|FIRE)/);
               if (verdictMatch) {
                 verdict = verdictMatch[1];
@@ -144,10 +152,10 @@ Ask 2-3 pointed, brutal questions to understand this idea better.`;
     // Non-streaming response (fallback)
     const response = await sendToGemini(prompt);
 
-    // Parse verdict if judging
+    // Parse verdict if present
     let verdict = null;
     let dashboardData = null;
-    if (shouldJudge && response.includes('VERDICT:')) {
+    if (response.includes('VERDICT:')) {
       const verdictMatch = response.match(/VERDICT:\s*(TRASH|MID|VIABLE|FIRE)/);
       if (verdictMatch) {
         verdict = verdictMatch[1];

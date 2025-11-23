@@ -1,3 +1,4 @@
+"use server"
 import { GoogleGenAI } from '@google/genai';
 
 // Get API key from environment variable (Next.js)

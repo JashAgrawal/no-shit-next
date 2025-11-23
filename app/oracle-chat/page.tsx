@@ -1,22 +1,23 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import { useIdeaStore } from '@/src/stores/ideaStore';
-import { useChatStore } from '@/src/stores/chatStore';
-import { Button } from '@/components/ui/button';
-import { ChatMessage } from '@/src/components/ChatMessage';
-import { ChatInput } from '@/src/components/ChatInput';
-import { toast } from 'sonner';
-import { ArrowLeft } from 'lucide-react';
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { useIdeaStore } from "@/src/stores/ideaStore";
+import { useChatStore } from "@/src/stores/chatStore";
+import { Button } from "@/components/ui/button";
+import { ChatMessage } from "@/src/components/ChatMessage";
+import { ChatInput } from "@/src/components/ChatInput";
+import { toast } from "sonner";
+import { ArrowLeft } from "lucide-react";
 
 export default function OracleChat() {
   const router = useRouter();
   const { getActiveIdea, updateIdea, activeIdeaId } = useIdeaStore();
-  const { getOracleMessages, addOracleMessage, isLoading, setLoading } = useChatStore();
+  const { getOracleMessages, addOracleMessage, isLoading, setLoading } =
+    useChatStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [conversationTurns, setConversationTurns] = useState(0);
-  const [streamingMessage, setStreamingMessage] = useState<string>('');
+  const [streamingMessage, setStreamingMessage] = useState<string>("");
 
   const currentIdea = getActiveIdea();
   const currentIdeaId = activeIdeaId;
@@ -27,7 +28,7 @@ export default function OracleChat() {
 
   useEffect(() => {
     if (!currentIdeaId) {
-      router.push('/analyze-ideas');
+      router.push("/analyze-ideas");
     }
   }, [currentIdeaId, router]);
 
@@ -36,10 +37,14 @@ export default function OracleChat() {
     const fetchHistory = async () => {
       if (!currentIdeaId) return;
       try {
-        const res = await fetch(`/api/messages?ideaId=${currentIdeaId}&chatType=oracle`);
+        const res = await fetch(
+          `/api/messages?ideaId=${currentIdeaId}&chatType=oracle`
+        );
         if (res.ok) {
           const data = await res.json();
-          useChatStore.getState().syncFromServer(currentIdeaId, 'oracle', data.messages || []);
+          useChatStore
+            .getState()
+            .syncFromServer(currentIdeaId, "oracle", data.messages || []);
         }
       } catch (_) {}
     };
@@ -47,11 +52,11 @@ export default function OracleChat() {
   }, [currentIdeaId]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length, streamingMessage]);
 
   useEffect(() => {
-    const userMessages = messages.filter(m => m.role === 'user');
+    const userMessages = messages.filter((m) => m.role === "user");
     setConversationTurns(userMessages.length);
   }, [messages]);
 
@@ -59,48 +64,48 @@ export default function OracleChat() {
     if (!currentIdeaId) return;
 
     addOracleMessage(currentIdeaId, {
-      role: 'user',
+      role: "user",
       content,
     });
 
     setLoading(true);
-    setStreamingMessage('');
+    setStreamingMessage("");
 
     try {
-      const response = await fetch('/api/chat/oracle', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/chat/oracle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: content,
           ideaId: currentIdeaId,
           conversationHistory: messages,
-          shouldJudge: conversationTurns >= 2,
+
           stream: true,
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to get Oracle response');
+        throw new Error("Failed to get Oracle response");
       }
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
 
       if (!reader) {
-        throw new Error('No response body');
+        throw new Error("No response body");
       }
 
-      let fullResponse = '';
-      let buffer = '';
+      let fullResponse = "";
+      let buffer = "";
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
         let idx;
-        while ((idx = buffer.indexOf('\n')) !== -1) {
+        while ((idx = buffer.indexOf("\n")) !== -1) {
           const line = buffer.slice(0, idx).trimEnd();
           buffer = buffer.slice(idx + 1);
-          if (line.startsWith('data: ')) {
+          if (line.startsWith("data: ")) {
             try {
               const data = JSON.parse(line.slice(6));
               if (data.chunk) {
@@ -108,19 +113,23 @@ export default function OracleChat() {
                 setStreamingMessage(fullResponse);
               }
               if (data.done) {
-                addOracleMessage(currentIdeaId, { role: 'assistant', content: fullResponse, agentId: 'oracle' });
-                setStreamingMessage('');
+                addOracleMessage(currentIdeaId, {
+                  role: "assistant",
+                  content: fullResponse,
+                  agentId: "oracle",
+                });
+                setStreamingMessage("");
                 if (data.verdict) {
                   updateIdea(currentIdeaId, {
                     verdict: data.verdict,
                     validated: true,
                     dashboardData: data.dashboardData,
                   });
-                  if (data.verdict === 'VIABLE' || data.verdict === 'FIRE') {
-                    toast.success('Idea approved! Dashboard unlocked.');
-                    setTimeout(() => router.push('/dashboard'), 2000);
+                  if (data.verdict === "VIABLE" || data.verdict === "FIRE") {
+                    toast.success("Idea approved! Dashboard unlocked.");
+                    setTimeout(() => router.push("/dashboard"), 2000);
                   } else {
-                    toast.error('Idea rejected. Try again or improve it.');
+                    toast.error("Idea rejected. Try again or improve it.");
                   }
                 }
               }
@@ -130,7 +139,7 @@ export default function OracleChat() {
       }
       // Flush any remaining buffered line
       const rem = buffer.trim();
-      if (rem.startsWith('data: ')) {
+      if (rem.startsWith("data: ")) {
         try {
           const data = JSON.parse(rem.slice(6));
           if (data.chunk) {
@@ -138,29 +147,32 @@ export default function OracleChat() {
             setStreamingMessage(fullResponse);
           }
           if (data.done) {
-            addOracleMessage(currentIdeaId, { role: 'assistant', content: fullResponse, agentId: 'oracle' });
-            setStreamingMessage('');
+            addOracleMessage(currentIdeaId, {
+              role: "assistant",
+              content: fullResponse,
+              agentId: "oracle",
+            });
+            setStreamingMessage("");
             if (data.verdict) {
               updateIdea(currentIdeaId, {
                 verdict: data.verdict,
                 validated: true,
                 dashboardData: data.dashboardData,
               });
-              if (data.verdict === 'VIABLE' || data.verdict === 'FIRE') {
-                toast.success('Idea approved! Dashboard unlocked.');
-                setTimeout(() => router.push('/dashboard'), 2000);
+              if (data.verdict === "VIABLE" || data.verdict === "FIRE") {
+                toast.success("Idea approved! Dashboard unlocked.");
+                setTimeout(() => router.push("/dashboard"), 2000);
               } else {
-                toast.error('Idea rejected. Try again or improve it.');
+                toast.error("Idea rejected. Try again or improve it.");
               }
             }
           }
         } catch {}
       }
-
     } catch (error) {
-      toast.error('Oracle is offline. Check API configuration.');
+      toast.error("Oracle is offline. Check API configuration.");
       console.error(error);
-      setStreamingMessage('');
+      setStreamingMessage("");
     } finally {
       setLoading(false);
     }
@@ -174,10 +186,7 @@ export default function OracleChat() {
     <div className="min-h-screen">
       <div className="max-w-4xl mx-auto p-4 space-y-4">
         <div className="flex items-center justify-between border-b border-border pb-4">
-          <Button
-            variant="ghost"
-            onClick={() => router.push('/')}
-          >
+          <Button variant="ghost" onClick={() => router.push("/")}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Button>
@@ -197,11 +206,11 @@ export default function OracleChat() {
           {streamingMessage && (
             <ChatMessage
               message={{
-                id: 'streaming',
-                role: 'assistant',
+                id: "streaming",
+                role: "assistant",
                 content: streamingMessage,
                 timestamp: Date.now(),
-                agentId: 'oracle',
+                agentId: "oracle",
               }}
             />
           )}
@@ -221,13 +230,8 @@ export default function OracleChat() {
           />
         </div>
 
-        {conversationTurns >= 2 && !currentIdea.verdict && (
-          <div className="text-center text-sm font-mono text-muted-foreground">
-            Oracle is ready to judge. Send your final response.
-          </div>
-        )}
+        {/* Removed turn-based judgment hint */}
       </div>
     </div>
   );
 }
-

@@ -41,7 +41,7 @@ DEFAULT LENS:
 export const AGENTS: Record<string, Agent> = {
   ceo: {
     id: 'ceo',
-    name: 'CEO',
+    name: 'Atlas',
     role: 'Strategic Direction',
     emoji: '👔',
     expertise: ['strategy', 'vision', 'direction', 'leadership', 'roadmap', 'pivot'],
@@ -70,7 +70,7 @@ RULES:
 
   assistant: {
     id: 'assistant',
-    name: 'Assistant',
+    name: 'Nova',
     role: 'Operations & Tasks',
     emoji: '🎯',
     expertise: ['tasks', 'operations', 'organization', 'workflow', 'productivity', 'general'],
@@ -112,7 +112,7 @@ VIBE:
 
   cto: {
     id: 'cto',
-    name: 'CTO',
+    name: 'Vector',
     role: 'Technical Architecture',
     emoji: '⚡',
     expertise: ['tech', 'architecture', 'stack', 'development', 'code', 'engineering'],
@@ -142,7 +142,7 @@ RULES:
 
   cmo: {
     id: 'cmo',
-    name: 'CMO',
+    name: 'Neon',
     role: 'Brand + GTM',
     emoji: '🎨',
     expertise: ['marketing', 'brand', 'gtm', 'growth', 'design', 'positioning'],
@@ -174,7 +174,7 @@ RULES:
 
   cfo: {
     id: 'cfo',
-    name: 'CFO',
+    name: 'Ledger',
     role: 'Finance',
     emoji: '💰',
     expertise: ['finance', 'pricing', 'burn', 'runway', 'economics', 'funding'],
@@ -205,7 +205,7 @@ RULES:
 
   pitch: {
     id: 'pitch',
-    name: 'Pitch Expert',
+    name: 'Echo',
     role: 'Decks + Story',
     emoji: '🎤',
     expertise: ['pitch', 'deck', 'presentation', 'storytelling'],
@@ -237,7 +237,7 @@ RULES:
 
   legal: {
     id: 'legal',
-    name: 'Legal Expert',
+    name: 'Shield',
     role: 'Legal + Compliance',
     emoji: '⚖️',
     expertise: ['legal', 'contracts', 'compliance', 'privacy', 'ip'],
@@ -267,7 +267,7 @@ RULES:
 
   growth: {
     id: 'growth',
-    name: 'Growth Specialist',
+    name: 'Rocket',
     role: 'Demand + Channels',
     emoji: '📈',
     expertise: ['growth', 'channels', 'viral', 'retention'],
@@ -297,7 +297,7 @@ RULES:
 
   psych: {
     id: 'psych',
-    name: 'Psych Agent',
+    name: 'Zen',
     role: 'Founder Mindset',
     emoji: '🧠',
     expertise: ['mindset', 'stress', 'burnout', 'motivation'],
@@ -338,10 +338,19 @@ ${GLOBAL}
 
 ROLE: Oracle — judge idea quality and unlock system access.
 
+You are a strict evaluator. No illusions. But Also very Ambitious as well . 
+so you dont eliminate ideas easily .
+While talking to you the idea of the startup should also get clearer for both of you .
+take into considerations the user details as well . 
+
+for example :- 
+like a product would work in china but not in india .
+but you reject it without asking more details about him and he was from china .
+
 VIBE:
 - Direct
-- High standards
 - No softness but no theatrics
+- Just Real Usefull Feedback
 
 SCORING:
 TRASH: <20 — fundamentally broken  
@@ -360,7 +369,6 @@ FINAL_IDEA_DESCRIPTION:
 
 RULES:
 - No sugarcoating
-- No ego-crushing insults
 - Give the truth and the path forward
 - Only ask essential questions
 `
@@ -368,7 +376,7 @@ RULES:
 
   artist: {
     id: 'artist',
-    name: 'Artist',
+    name: 'Pixel',
     role: 'Visual Creator',
     emoji: '🎨',
     expertise: ['logo', 'banner', 'visual', 'design'],
@@ -398,7 +406,7 @@ RULES:
 
   social: {
     id: 'social',
-    name: 'Social Media Expert',
+    name: 'Pulse',
     role: 'Viral Content',
     emoji: '📱',
     expertise: ['social', 'viral', 'content', 'community'],

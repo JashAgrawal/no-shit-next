@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
           for (const agentId of agentIds) {
             const agent = AGENTS[agentId];
             let fullPrompt = `BOARDROOM DISCUSSION:\n${message}\n\n`;
-            
+
             if (conversationHistory && conversationHistory.length > 0) {
               fullPrompt += `PREVIOUS DISCUSSION HISTORY:\n${conversationHistory.map((m: any) => `${m.agentId ? AGENTS[m.agentId]?.name || 'User' : 'User'}: ${m.content}`).join('\n')}\n\n`;
             }
@@ -67,16 +67,29 @@ export async function POST(req: NextRequest) {
               fullPrompt += `CURRENT MEETING TRANSCRIPT (What just happened):\n${currentTurnTranscript}\n\n`;
             }
 
-            fullPrompt += `INSTRUCTIONS:\nYou are ${agent.name} (${agent.role}).\n${agent.personality}\n\nRespond to the user's input AND the other board members. If someone just spoke, build on it or disagree. Don't ignore them.\n\nYOUR RESPONSE:`;
+            fullPrompt += `INSTRUCTIONS:
+You are ${agent.name} (${agent.role}).
+${agent.personality}
+
+BOARDROOM RULES:
+1. DEBATE THE USER: Do not just agree. Challenge their assumptions. Ask "Why this? Why not that?"
+2. DEBATE THE BOARD: If another agent (CEO, CTO, CMO, CFO) said something weak, CALL THEM OUT by name. Disagree with them.
+3. BE CRITICAL: Do not just "build on" ideas. Tear them down to see if they survive.
+4. INTERACTION: "If [Other Agent] is right about X, then why Y?"
+5. GOAL: We need the truth, not a polite meeting. Friction creates value.
+
+Respond to the user's input AND the other board members with this critical, debating mindset.
+
+YOUR RESPONSE:`;
 
             fullResponses[agent.id] = '';
             for await (const chunk of streamFromGemini(fullPrompt, agent.systemPrompt)) {
               fullResponses[agent.id] += chunk.text;
               controller.enqueue(
-                encoder.encode(`data: ${JSON.stringify({ agentId: agent.id, chunk:chunk.text })}\n\n`)
+                encoder.encode(`data: ${JSON.stringify({ agentId: agent.id, chunk: chunk.text })}\n\n`)
               );
             }
-            
+
             // Append to transcript for next agent
             currentTurnTranscript += `${agent.name}: ${fullResponses[agent.id]}\n\n`;
 
@@ -99,46 +112,56 @@ export async function POST(req: NextRequest) {
             const summaryPrompt = `${assistant.systemPrompt}\n\nBOARDROOM TOPIC / USER MESSAGE:\n${message}\n\nFULL DEBATE TRANSCRIPT:\n${agentIds
               .map((aid) => `${AGENTS[aid].name}: ${fullResponses[aid]}`)
               .join('\n\n')}\n\nSummarize key points and decisions in 5-8 bullet points. Make it actionable.`;
-            
-            // Use native tools for summary if needed (though summary usually doesn't need tools, keeping it consistent)
+
             const functionDeclarations = getGeminiFunctionDeclarations();
-            const { text: summary, toolCalls } = await sendWithTools(summaryPrompt, functionDeclarations, assistant.systemPrompt);
+
+            let assistantSummary = '';
+            const assistantToolCalls: any[] = [];
+
+            // Stream the assistant response
+            for await (const chunk of streamFromGemini(summaryPrompt, assistant.systemPrompt, functionDeclarations)) {
+              if (chunk.text) {
+                assistantSummary += chunk.text;
+                controller.enqueue(
+                  encoder.encode(`data: ${JSON.stringify({ agentId: 'assistant', chunk: chunk.text })}\n\n`)
+                );
+              }
+              if (chunk.toolCalls) {
+                assistantToolCalls.push(...chunk.toolCalls);
+              }
+            }
 
             // Handle any tool calls from summary (e.g. auto-create tasks from meeting)
-            if (ideaId && Array.isArray(toolCalls)) {
-               for (const call of toolCalls) {
-                 if (call.name === 'create_task') {
-                    await db.insert(tasks).values({
-                      id: crypto.randomUUID(),
-                      ideaId,
-                      title: call.args?.title || 'Untitled Task',
-                      description: call.args?.description || '',
-                      status: 'todo',
-                      priority: call.args?.priority || 'medium',
-                      assignedTo: call.args?.assignedTo || null,
-                      tags: call.args?.tags ? JSON.stringify(call.args.tags) : null,
-                      dueDate: null,
-                    });
-                 }
-               }
+            if (ideaId && assistantToolCalls.length > 0) {
+              for (const call of assistantToolCalls) {
+                if (call.name === 'create_task') {
+                  await db.insert(tasks).values({
+                    id: crypto.randomUUID(),
+                    ideaId,
+                    title: call.args?.title || 'Untitled Task',
+                    description: call.args?.description || '',
+                    status: 'todo',
+                    priority: call.args?.priority || 'medium',
+                    assignedTo: call.args?.assignedTo || null,
+                    tags: call.args?.tags ? JSON.stringify(call.args.tags) : null,
+                    dueDate: null,
+                  });
+                }
+              }
             }
 
             // Persist assistant summary
-            if (ideaId) {
+            if (ideaId && assistantSummary) {
               await db.insert(messages).values({
                 id: crypto.randomUUID(),
                 ideaId,
                 chatType: 'boardroom',
                 agentId: 'assistant',
                 role: 'assistant',
-                content: summary,
+                content: assistantSummary,
               });
             }
 
-            // Stream summary event
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ agentId: 'assistant', summary })}\n\n`)
-            );
           } catch (e) {
             // ignore summary errors, still close stream
             console.error('Summary generation failed:', e);
