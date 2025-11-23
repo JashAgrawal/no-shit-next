@@ -35,13 +35,13 @@ export function AppSidebar() {
     { title: "HiveMind Chat", url: "/dashboard", icon: Grid3x3 },
     { title: "Boardroom", url: "/dashboard/boardroom", icon: Users },
     { title: "Tasks", url: "/dashboard/tasks", icon: CheckSquare },
-    {
-      title: "All Ideas",
-      url: "/analyze-ideas",
-      icon: FolderOpen,
-      external: true,
-    },
-    { title: "Idea Stats", url: "/dashboard/stats", icon: BarChart3 },
+    // {
+    //   title: "All Ideas",
+    //   url: "/analyze-ideas",
+    //   icon: FolderOpen,
+    //   external: true,
+    // },
+    // { title: "Idea Stats", url: "/dashboard/stats", icon: BarChart3 },
     { title: "Validator", url: "/dashboard/validator", icon: Lightbulb },
   ];
 
