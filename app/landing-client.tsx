@@ -148,7 +148,22 @@ export default function LandingClient() {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
                 </span>
-                System Online // v1.0
+                <a
+                  href="https://www.producthunt.com/products/no-shit?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-no&#0045;shit"
+                  target="_blank"
+                >
+                  <img
+                    src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1041562&theme=dark&t=1763940181918"
+                    alt="No&#0032;Shit - Brutal&#0032;oracle&#0032;for&#0032;builders | Product Hunt"
+                    // style="width: 250px; height: 54px;"
+                    // style={{
+                    //   borderRadius: 99,
+                    // }}
+                    // width="250"
+                    // height="54"
+                    className="w-full h-14 rounded-full"
+                  />
+                </a>
               </span>
             </div>
 
