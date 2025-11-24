@@ -1,32 +1,41 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useIdeaStore } from '@/src/stores/ideaStore';
-import { useChatStore } from '@/src/stores/chatStore';
-import { ChatMessage } from '@/src/components/ChatMessage';
-import { ChatInput } from '@/src/components/ChatInput';
-import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useIdeaStore } from "@/src/stores/ideaStore";
+import { useChatStore } from "@/src/stores/chatStore";
+import { useShallow } from "zustand/react/shallow";
+import { ChatMessage } from "@/src/components/ChatMessage";
+import { ChatInput } from "@/src/components/ChatInput";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export default function DashboardHome() {
   const router = useRouter();
   const { activeIdeaId, getActiveIdea } = useIdeaStore();
-  const { getHivemindMessages, addHivemindMessage, clearHivemindChat, isLoading, setLoading } = useChatStore();
+  const {
+    getHivemindMessages,
+    addHivemindMessage,
+    clearHivemindChat,
+    isLoading,
+    setLoading,
+  } = useChatStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [streamingMessage, setStreamingMessage] = useState('');
-  const messages = useChatStore((state) => {
-    if (!activeIdeaId) return [] as ReturnType<typeof getHivemindMessages>;
-    return state.hivemindChats[activeIdeaId] || [];
-  });
+  const [streamingMessage, setStreamingMessage] = useState("");
+  const messages = useChatStore(
+    useShallow((state) => {
+      if (!activeIdeaId) return [];
+      return state.hivemindChats[activeIdeaId] || [];
+    })
+  );
 
   useEffect(() => {
     const idea = getActiveIdea();
-    if (!idea) router.push('/analyze-ideas');
+    if (!idea) router.push("/analyze-ideas");
   }, [getActiveIdea, router]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length, streamingMessage]);
 
   // Hydrate hivemind chat history from server
@@ -34,10 +43,14 @@ export default function DashboardHome() {
     const fetchHistory = async () => {
       if (!activeIdeaId) return;
       try {
-        const res = await fetch(`/api/messages?ideaId=${activeIdeaId}&chatType=hivemind`);
+        const res = await fetch(
+          `/api/messages?ideaId=${activeIdeaId}&chatType=hivemind`
+        );
         if (res.ok) {
           const data = await res.json();
-          useChatStore.getState().syncFromServer(activeIdeaId, 'hivemind', data.messages || []);
+          useChatStore
+            .getState()
+            .syncFromServer(activeIdeaId, "hivemind", data.messages || []);
         }
       } catch {}
     };
@@ -115,29 +128,34 @@ export default function DashboardHome() {
   //     setLoading(false);
   //   }
   // };
-const handleSend = async (content: string) => {
+  const handleSend = async (content: string) => {
     if (!activeIdeaId) {
-      toast.error('No active idea selected');
+      toast.error("No active idea selected");
       return;
     }
 
-    addHivemindMessage(activeIdeaId, { role: 'user', content });
+    addHivemindMessage(activeIdeaId, { role: "user", content });
     setLoading(true);
-    setStreamingMessage('');
+    setStreamingMessage("");
 
     try {
-      const response = await fetch('/api/chat/hivemind', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: content, ideaId: activeIdeaId, conversationHistory: messages }),
+      const response = await fetch("/api/chat/hivemind", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: content,
+          ideaId: activeIdeaId,
+          conversationHistory: messages,
+        }),
       });
-      if (!response.ok || !response.body) throw new Error('Failed to get streaming response');
+      if (!response.ok || !response.body)
+        throw new Error("Failed to get streaming response");
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let full = '';
+      let full = "";
       let routedAgentId: string | undefined = undefined;
-      let buffer = '';
+      let buffer = "";
       let streamDone = false;
 
       while (true) {
@@ -148,44 +166,47 @@ const handleSend = async (content: string) => {
         let lineBreakIndex;
 
         // Process all complete lines in the buffer
-        while ((lineBreakIndex = buffer.indexOf('\n')) !== -1) {
+        while ((lineBreakIndex = buffer.indexOf("\n")) !== -1) {
           const line = buffer.slice(0, lineBreakIndex).trimEnd();
           buffer = buffer.slice(lineBreakIndex + 1);
 
-          if (line.startsWith('data: ')) {
+          if (line.startsWith("data: ")) {
             try {
               const data = JSON.parse(line.slice(6));
-              
+
               if (data.route && data.agentId) {
                 routedAgentId = data.agentId as string;
               }
-              
+
               if (data.chunk) {
                 full += data.chunk;
                 setStreamingMessage(full);
               }
-              
+
               if (data.done) {
                 // Final message received, add to store and reset streaming state
-                addHivemindMessage(activeIdeaId, { role: 'assistant', content: full, agentId: routedAgentId });
-                setStreamingMessage('');
+                addHivemindMessage(activeIdeaId, {
+                  role: "assistant",
+                  content: full,
+                  agentId: routedAgentId,
+                });
+                setStreamingMessage("");
                 streamDone = true;
               }
             } catch (e) {
-              console.error('Error parsing streaming JSON line:', e, line);
+              console.error("Error parsing streaming JSON line:", e, line);
               // Silently ignore parsing errors for non-critical lines
             }
           }
         }
         if (streamDone) break;
       }
-      
-      // No extra flush; we rely on newline-delimited events and done flag
 
+      // No extra flush; we rely on newline-delimited events and done flag
     } catch (e) {
-      console.error('Streaming API call failed:', e);
-      toast.error('HiveMind is offline. Check API configuration.');
-      setStreamingMessage('');
+      console.error("Streaming API call failed:", e);
+      toast.error("HiveMind is offline. Check API configuration.");
+      setStreamingMessage("");
     } finally {
       setLoading(false);
     }
@@ -213,11 +234,21 @@ const handleSend = async (content: string) => {
         )}
         <div className="space-y-4 max-w-4xl mx-auto">
           {messages.map((message) => (
-            <ChatMessage key={message.id} message={message} onResend={handleSend} isResending={isLoading} />
+            <ChatMessage
+              key={message.id}
+              message={message}
+              onResend={handleSend}
+              isResending={isLoading}
+            />
           ))}
           {streamingMessage && (
             <ChatMessage
-              message={{ id: 'stream', role: 'assistant', content: streamingMessage, timestamp: Date.now() }}
+              message={{
+                id: "stream",
+                role: "assistant",
+                content: streamingMessage,
+                timestamp: Date.now(),
+              }}
             />
           )}
           {isLoading && !streamingMessage && (
@@ -237,20 +268,23 @@ const handleSend = async (content: string) => {
           <Button
             variant="outline"
             size="sm"
-            onClick={async () => { 
-              if (activeIdeaId) { 
-                clearHivemindChat(activeIdeaId); 
-                setStreamingMessage(''); 
+            onClick={async () => {
+              if (activeIdeaId) {
+                clearHivemindChat(activeIdeaId);
+                setStreamingMessage("");
                 try {
-                  await fetch(`/api/messages?ideaId=${activeIdeaId}&chatType=hivemind`, {
-                    method: 'DELETE',
-                  });
-                  toast.success('Hivemind chat cleared');
+                  await fetch(
+                    `/api/messages?ideaId=${activeIdeaId}&chatType=hivemind`,
+                    {
+                      method: "DELETE",
+                    }
+                  );
+                  toast.success("Hivemind chat cleared");
                 } catch (error) {
-                  console.error('Failed to clear hivemind chat:', error);
-                  toast.error('Failed to clear chat from server');
+                  console.error("Failed to clear hivemind chat:", error);
+                  toast.error("Failed to clear chat from server");
                 }
-              } 
+              }
             }}
             disabled={!activeIdeaId}
           >

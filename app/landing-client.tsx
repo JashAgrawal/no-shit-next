@@ -33,6 +33,12 @@ export default function LandingClient() {
   const [isSubmittingIdea, setIsSubmittingIdea] = useState(false);
 
   const handleInitialSubmit = async () => {
+    if (!session) {
+      toast.error("ACCESS DENIED: LOGIN REQUIRED");
+      router.push("/sign-in");
+      return;
+    }
+
     if (!initialIdea.trim()) {
       toast.error("INPUT REQUIRED");
       return;
@@ -95,6 +101,15 @@ export default function LandingClient() {
     }
   };
 
+  const handleViewIdeas = () => {
+    if (!session) {
+      toast.error("ACCESS DENIED: LOGIN REQUIRED");
+      router.push("/sign-in");
+      return;
+    }
+    router.push("/analyze-ideas");
+  };
+
   const scrollToInput = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
     const input = document.querySelector("textarea");
@@ -141,29 +156,30 @@ export default function LandingClient() {
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50"></div>
 
         <div className="max-w-4xl w-full space-y-12 z-10 relative text-center">
-          <div className="space-y-6">
+          <div className="space-y-6 py-6">
+            <a
+              href="https://www.producthunt.com/products/no-shit?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-no&#0045;shit"
+              target="_blank"
+            >
+              <img
+                src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1041562&theme=dark&t=1763940181918"
+                alt="No&#0032;Shit - Brutal&#0032;oracle&#0032;for&#0032;builders | Product Hunt"
+                // style="width: 250px; height: 54px;"
+                // style={{
+                //   borderRadius: 99,
+                // }}
+                // width="250"
+                // height="54"
+                className="w-full h-14 rounded-full"
+              />
+            </a>
             <div className="inline-block border border-primary/30 bg-primary/5 px-4 py-1 rounded-full backdrop-blur-sm mb-4">
               <span className="text-xs font-mono text-primary tracking-widest uppercase flex items-center gap-2">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
                 </span>
-                <a
-                  href="https://www.producthunt.com/products/no-shit?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-no&#0045;shit"
-                  target="_blank"
-                >
-                  <img
-                    src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1041562&theme=dark&t=1763940181918"
-                    alt="No&#0032;Shit - Brutal&#0032;oracle&#0032;for&#0032;builders | Product Hunt"
-                    // style="width: 250px; height: 54px;"
-                    // style={{
-                    //   borderRadius: 99,
-                    // }}
-                    // width="250"
-                    // height="54"
-                    className="w-full h-14 rounded-full"
-                  />
-                </a>
+                System Online // v1.0.0
               </span>
             </div>
 
@@ -234,21 +250,18 @@ export default function LandingClient() {
               )}
             </Button>
 
-            <Link href={"/analyze-ideas"}>
-              <Button
-                onClick={handleInitialSubmit}
-                disabled={isSubmittingIdea || !initialIdea.trim()}
-                className="w-full bg-black text-xl mt-4 py-8 font-mono font-bold uppercase tracking-[0.2em] rounded-none border-2 border-primary bg-black text-red-600 transition-all hover:shadow-[0_0_30px_rgba(255,0,0,0.4)] active:translate-y-1 relative overflow-hidden group"
-                size="lg"
-              >
-                <div className="absolute inset-0 bg-black/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+            <Button
+              onClick={handleViewIdeas}
+              className="w-full bg-black text-xl mt-4 py-8 font-mono font-bold uppercase tracking-[0.2em] rounded-none border-2 border-primary bg-black text-red-600 transition-all hover:shadow-[0_0_30px_rgba(255,0,0,0.4)] active:translate-y-1 relative overflow-hidden group"
+              size="lg"
+            >
+              <div className="absolute inset-0 bg-black/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
 
-                <span className="flex items-center gap-3 relative z-10">
-                  <History className="h-6 w-6" />
-                  View My Ideas
-                </span>
-              </Button>
-            </Link>
+              <span className="flex items-center gap-3 relative z-10">
+                <History className="h-6 w-6" />
+                View My Ideas
+              </span>
+            </Button>
 
             <p className="text-xs py-24 font-mono text-muted-foreground/50 text-center uppercase tracking-widest">
               [ 100% BRUTAL HONESTY GUARANTEED ]

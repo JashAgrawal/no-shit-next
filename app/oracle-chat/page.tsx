@@ -4,14 +4,17 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useIdeaStore } from "@/src/stores/ideaStore";
 import { useChatStore } from "@/src/stores/chatStore";
+import { useShallow } from "zustand/react/shallow";
 import { Button } from "@/components/ui/button";
 import { ChatMessage } from "@/src/components/ChatMessage";
 import { ChatInput } from "@/src/components/ChatInput";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
+import { useSession } from "@/lib/auth-client";
 
 export default function OracleChat() {
   const router = useRouter();
+  const { data: session, isPending } = useSession();
   const { getActiveIdea, updateIdea, activeIdeaId } = useIdeaStore();
   const { getOracleMessages, addOracleMessage, isLoading, setLoading } =
     useChatStore();
@@ -21,10 +24,18 @@ export default function OracleChat() {
 
   const currentIdea = getActiveIdea();
   const currentIdeaId = activeIdeaId;
-  const messages = useChatStore((state) => {
-    if (!currentIdeaId) return [] as ReturnType<typeof getOracleMessages>;
-    return state.oracleChats[currentIdeaId] || [];
-  });
+  const messages = useChatStore(
+    useShallow((state) => {
+      if (!currentIdeaId) return [];
+      return state.oracleChats[currentIdeaId] || [];
+    })
+  );
+
+  useEffect(() => {
+    if (!isPending && !session) {
+      router.push("/sign-in");
+    }
+  }, [session, isPending, router]);
 
   useEffect(() => {
     if (!currentIdeaId) {

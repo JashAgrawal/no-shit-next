@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useIdeaStore } from "@/src/stores/ideaStore";
 import { useChatStore } from "@/src/stores/chatStore";
+import { useShallow } from "zustand/react/shallow";
 import { Button } from "@/components/ui/button";
 import { ChatInput } from "@/src/components/ChatInput";
 import { AgentBadge } from "@/src/components/AgentBadge";
@@ -21,10 +22,12 @@ export default function BoardroomPage() {
   } = useChatStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const messages = useChatStore((state) => {
-    if (!activeIdeaId) return [] as ReturnType<typeof getBoardroomMessages>;
-    return state.boardroomChats[activeIdeaId] || [];
-  });
+  const messages = useChatStore(
+    useShallow((state) => {
+      if (!activeIdeaId) return [];
+      return state.boardroomChats[activeIdeaId] || [];
+    })
+  );
 
   const [streamingByAgent, setStreamingByAgent] = useState<
     Record<string, string>
