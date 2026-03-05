@@ -220,3 +220,37 @@ export async function generateMedia(prompt: string): Promise<{ url: string; mime
     return null;
   }
 }
+
+export async function getTrendingTopicsWithSearch(prompt: string, systemPrompt?: string): Promise<string> {
+  if (!genAI) {
+    throw new Error('Gemini API key not configured. Please set GEMINI_API_KEY environment variable.');
+  }
+
+  try {
+    const config: any = {
+      tools: [{ googleSearch: {} }]
+    };
+
+    if (systemPrompt) {
+      config.systemInstruction = {
+        parts: [{ text: systemPrompt }],
+      };
+    }
+
+    const result = await genAI.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      config: config
+    });
+
+    try {
+      return result.text || '';
+    } catch (e) {
+      console.warn('Error extracting text from response:', e);
+      return '';
+    }
+  } catch (error) {
+    console.error('Gemini Search error:', error);
+    throw new Error(`Gemini Search error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
